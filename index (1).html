@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultrasonic Distance Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	padding: 25px;
+	background: #0f172a;
+	color: white;
+	font-family: Arial, sans-serif;
+}
+
+.container {
+	max-width: 590px;
+	margin: auto;
+}
+
+h2 {
+	text-align: center;
+	margin-bottom: 8px;
+}
+
+.connection {
+	text-align: center;
+	color: #94a3b8;
+	margin-bottom: 22px;
+}
+
+.dot {
+	color: #ef4444;
+}
+
+.card {
+	background: #1e293b;
+	padding: 22px;
+	border-radius: 18px;
+	margin-bottom: 18px;
+	box-shadow: 0 5px 15px #0003;
+}
+
+.distance {
+	text-align: center;
+	font-size: 62px;
+	font-weight: bold;
+	color: #38bdf8;
+	margin: 5px;
+}
+
+.distance small {
+	font-size: 22px;
+	color: #94a3b8;
+}
+
+.bar {
+	height: 18px;
+	background: #334155;
+	border-radius: 20px;
+	overflow: hidden;
+	margin-top: 20px;
+}
+
+.fill {
+	height: 100%;
+	width: 20%;
+	background: #22c55e;
+	transition: width 0.3s;
+}
+
+.status {
+	text-align: center;
+	color: #22c55e;
+	margin-top: 12px;
+	font-weight: bold;
+}
+
+.stats {
+	display: flex;
+	justify-content: space-around;
+	text-align: center;
+}
+
+.stats span {
+	color: #94a3b8;
+	font-size: 14px;
+}
+
+.stats h3 {
+	margin: 5px;
+}
+
+.chart-title {
+	color: #cbd5e1;
+	margin-bottom: 10px;
+}
+
+canvas {
+	width: 100% !important;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Ultrasonic Distance Dashboard</h2>
+
+<div class="connection">
+	<span class="dot">●</span> <span id="connection">Demo Mode</span>
+</div>
+
+<!-- Distance Card -->
+<div class="card">
+
+	<div class="distance">
+		<span id="distance">36.7</span>
+		<small>cm</small>
+	</div>
+
+	<div class="bar">
+		<div class="fill" id="bar"></div>
+	</div>
+
+	<div class="status" id="status">
+		Safe Distance
+	</div>
+
+</div>
+
+<!-- Statistics -->
+<div class="card stats">
+
+	<div>
+		<span>Min</span>
+		<h3 id="min">36.7</h3>
+	</div>
+
+	<div>
+		<span>Max</span>
+		<h3 id="max">36.7</h3>
+	</div>
+
+	<div>
+		<span>Average</span>
+		<h3 id="avg">36.7</h3>
+	</div>
+
+</div>
+
+<!-- Graph -->
+<div class="card">
+
+	<div class="chart-title">
+		Last 60 readings
+	</div>
+
+	<canvas id="distanceChart"></canvas>
+
+</div>
+
+</div>
+
+<script>
+
+let readings = [];
+
+const ctx = document.getElementById("distanceChart");
+
+const chart = new Chart(ctx, {
+	type: "line",
+
+	data: {
+		labels: [],
+		datasets: [{
+			label: "Distance (cm)",
+			data: [],
+			borderColor: "#38bdf8",
+			borderWidth: 2,
+			pointRadius: 0,
+			tension: 0.2
+		}]
+	},
+
+	options: {
+		responsive: true,
+		animation: false,
+		plugins: {
+			legend: { display: false }
+		},
+		scales: {
+			x: { display: false },
+			y: {
+				min: 0,
+				max: 200,
+				ticks: { color: "#94a3b8" },
+				grid: { color: "#334155" }
+			}
+		}
+	}
+});
+
+function updateDashboard(distance) {
+
+	readings.push(distance);
+
+	if (readings.length > 60) {
+		readings.shift();
+	}
+
+	let min = Math.min(...readings);
+	let max = Math.max(...readings);
+
+	let avg = readings.reduce((a,b) => a+b,0)
+			  / readings.length;
+
+	document.getElementById("distance").innerText =
+		distance.toFixed(1);
+
+	document.getElementById("min").innerText =
+		min.toFixed(1);
+
+	document.getElementById("max").innerText =
+		max.toFixed(1);
+
+	document.getElementById("avg").innerText =
+		avg.toFixed(1);
+
+	let bar = document.getElementById("bar");
+
+	bar.style.width = Math.min(distance / 200 * 100, 100) + "%";
+
+	let status = document.getElementById("status");
+
+	if (distance < 20) {
+		status.innerText = "Warning! Object Nearby";
+		status.style.color = "#ef4444";
+		bar.style.background = "#ef4444";
+	} else {
+		status.innerText = "Safe Distance";
+		status.style.color = "#22c55e";
+		bar.style.background = "#22c55e";
+	}
+
+	chart.data.labels.push("");
+	chart.data.datasets[0].data.push(distance);
+
+	if (chart.data.labels.length > 60) {
+		chart.data.labels.shift();
+		chart.data.datasets[0].data.shift();
+	}
+
+	chart.update();
+}
+
+// Demo readings (replace with ESP32 data later)
+setInterval(() => {
+
+	let distance = Math.random() * 180 + 5;
+
+	updateDashboard(distance);
+
+}, 1500);
+
+</script>
+
+</body>
+</html>
